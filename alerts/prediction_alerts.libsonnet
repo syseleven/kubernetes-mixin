@@ -23,12 +23,13 @@
               message: 'Based on recent sampling, the PersistentVolume claimed by {{ $labels.persistentvolumeclaim }} in Namespace {{ $labels.namespace }} is expected to fill up within four days. Currently {{ $value }}% are in use.',
             },
           },
+
           {
             alert: 'ClusterCPUInsufficentInFourDays',
             expr: |||
               :node_cpu_utilization:avg1m * 100
                 and
-              predict_linear(:node_cpu_utilization:avg1m[%(predictionSampleTime)s]), 4 * 24 * 3600) * 100
+              predict_linear(:node_cpu_utilisation:avg1m[%(predictionSampleTime)s]), 4 * 24 * 3600) * 100
                 > 100
             ||| % $._config,
             'for': '3h',
@@ -36,7 +37,7 @@
               severity: 'warning',
             },
             annotations: {
-              message: 'Based on recent sampling the CPUs of the cluster are expected to be fully utilized within four days. Currently {{ $value }}% are in use.',
+              message: 'Based on recent sampling the CPUs of the cluster are expected to be fully utilised within four days. Currently {{ $value }}% are in use.',
             },
           },
           {
@@ -44,7 +45,7 @@
             expr: |||
               :node_memory_utilisation: * 100
                 and
-              predict_linear(:node_memory_utilization:[%(predictionSampleTime)s]), 4 * 24 * 3600) * 100
+              predict_linear(:node_memory_utilisation:[%(predictionSampleTime)s]), 4 * 24 * 3600) * 100
                 > 100
             ||| % $._config,
             'for': '3h',
@@ -52,7 +53,7 @@
               severity: 'warning',
             },
             annotations: {
-              message: 'Based on recent sampling the memory of the cluster is expected to be fully utilized within four days. Currently {{ $value }}% is in use.',
+              message: 'Based on recent sampling the memory of the cluster is expected to be fully utilised within four days. Currently {{ $value }}% is in use.',
             },
           },
         ],
