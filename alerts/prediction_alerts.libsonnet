@@ -27,7 +27,7 @@
           {
             alert: 'ClusterCPUInsufficentInFourDays',
             expr: |||
-              predict_linear(:node_cpu_utilization:{%(prefixedNamespaceSelector)}[%(predictionSampleTime)s]), 4 * 24 * 3600) > 100
+              :node_cpu_utilization:{%(prefixedNamespaceSelector)} and predict_linear(:node_cpu_utilization:{%(prefixedNamespaceSelector)}[%(predictionSampleTime)s]), 4 * 24 * 3600) > 100
             ||| % $._config,
             'for': '3h',
             labels: {
@@ -40,7 +40,7 @@
           {
             alert: 'ClusterMemoryInsufficentInFourDays',
             expr: |||
-              predict_linear(:node_memory_utilization:{%(prefixedNamespaceSelector)}[%(predictionSampleTime)s]), 4 * 24 * 3600) > 100
+              :node_memory_utilisation:{%(prefixedNamespaceSelector)} and predict_linear(:node_memory_utilization:{%(prefixedNamespaceSelector)}[%(predictionSampleTime)s]), 4 * 24 * 3600) > 100
             ||| % $._config,
             'for': '3h',
             labels: {
