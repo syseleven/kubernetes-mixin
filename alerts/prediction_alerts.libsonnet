@@ -26,27 +26,33 @@
           {
             alert: 'ClusterCPUInsufficentInFourDays',
             expr: |||
-              :node_cpu_utilization:{%(prefixedNamespaceSelector)} and predict_linear(:node_cpu_utilization:{%(prefixedNamespaceSelector)}[%(predictionSampleTime)s]), 4 * 24 * 3600) > 100
+              :node_cpu_utilization:avg1m{%(prefixedNamespaceSelector)} * 100
+                and
+              predict_linear(:node_cpu_utilization:avg1m{%(prefixedNamespaceSelector)}[%(predictionSampleTime)s]), 4 * 24 * 3600) * 100
+                > 100
             ||| % $._config,
             'for': '3h',
             labels: {
               severity: 'warning',
             },
             annotations: {
-              message: 'Based on recent sampling the CPUs of the cluster are expected to be fully saturated within four days. Currently {{ $value }}% are in use.',
+              message: 'Based on recent sampling the CPUs of the cluster are expected to be fully utilized within four days. Currently {{ $value }}% are in use.',
             },
           },
           {
             alert: 'ClusterMemoryInsufficentInFourDays',
             expr: |||
-              :node_memory_utilisation:{%(prefixedNamespaceSelector)} and predict_linear(:node_memory_utilization:{%(prefixedNamespaceSelector)}[%(predictionSampleTime)s]), 4 * 24 * 3600) > 100
+              :node_memory_utilisation:{%(prefixedNamespaceSelector)} * 100
+                and
+              predict_linear(:node_memory_utilization:{%(prefixedNamespaceSelector)}[%(predictionSampleTime)s]), 4 * 24 * 3600) * 100
+                > 100
             ||| % $._config,
             'for': '3h',
             labels: {
               severity: 'warning',
             },
             annotations: {
-              message: 'Based on recent sampling the memory of the cluster is expected to be fully saturated within four days. Currently {{ $value }}% is in use.',
+              message: 'Based on recent sampling the memory of the cluster is expected to be fully utilized within four days. Currently {{ $value }}% is in use.',
             },
           },
         ],
