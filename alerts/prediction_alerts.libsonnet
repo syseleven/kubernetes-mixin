@@ -25,7 +25,7 @@
             expr: |||
               :node_cpu_utilization:avg1m * 100
                 and
-              predict_linear(:node_cpu_utilization:avg1m[%(predictionSampleTime)s]), 4 * 24 * 3600) * 100
+              predict_linear(:node_cpu_utilization:avg1m[%(predictionSampleTime)s], 4 * 24 * 3600) * 100
                 > 100
             ||| % $._config,
             'for': '3h',
@@ -41,7 +41,7 @@
             expr: |||
               :node_memory_utilisation: * 100
                 and
-              predict_linear(:node_memory_utilization:[%(predictionSampleTime)s]), 4 * 24 * 3600) * 100
+              predict_linear(:node_memory_utilization:[%(predictionSampleTime)s], 4 * 24 * 3600) * 100
                 > 100
             ||| % $._config,
             'for': '3h',
