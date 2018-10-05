@@ -146,6 +146,16 @@
             ||| % $._config,
           },
           {
+            // CPU utilisation splitted by mode gives more insight than rule above
+            record: 'node_mode:node_cpu_utilisation:avg1m',
+            expr: |||
+              avg by (node, mode) (
+                rate(node_cpu{%(nodeExporterSelector)s}[1m])
+              * on (namespace, %(podLabel)s) group_left(node)
+                node_namespace_pod:kube_pod_info:)
+            ||| % $._config,
+          },
+          {
             // CPU saturation is 1min avg run queue length / number of CPUs.
             // Can go over 100%.  >100% is bad.
             record: ':node_cpu_saturation_load1:',
