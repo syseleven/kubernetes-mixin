@@ -11,10 +11,11 @@
                 kubelet_volume_stats_used_bytes{%(prefixedNamespaceSelector)s%(kubeletSelector)s}
                   /
                 kubelet_volume_stats_capacity_bytes{%(prefixedNamespaceSelector)s%(kubeletSelector)s}
-              ) > 0.85
-              and
-              predict_linear(kubelet_volume_stats_available_bytes{%(prefixedNamespaceSelector)s%(kubeletSelector)s}[%(predictionSampleTime)s], 4 * 24 * 3600) < 0
-
+              ) * 100 > 85
+              and predict_linear (
+                kubelet_volume_stats_available_bytes{%(prefixedNamespaceSelector)s%(kubeletSelector)s}[%(predictionSampleTime)s],
+                4 * 24 * 3600
+              ) < 0
             ||| % $._config,
             'for': '3h',
             labels: {
