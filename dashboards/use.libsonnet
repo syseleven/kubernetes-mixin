@@ -12,7 +12,7 @@ local g = import 'grafana-builder/grafana.libsonnet';
         g.row('CPU')
         .addPanel(
           g.panel('CPU Utilisation') +
-          g.queryPanel('node:node_cpu_utilisation:avg1m * node:node_num_cpu:sum / scalar(sum(node:node_num_cpu:sum))', '{{node}}', legendLink) +
+          g.queryPanel('node:node_cpu_utilisation:avg5m * node:node_num_cpu:sum / scalar(sum(node:node_num_cpu:sum))', '{{node}}', legendLink) +
           g.stack +
           { yaxes: g.yaxes({ format: 'percentunit', max: 1 }) },
         )
@@ -95,7 +95,7 @@ local g = import 'grafana-builder/grafana.libsonnet';
         g.row('CPU')
         .addPanel(
           g.panel('CPU Utilisation') +
-          g.queryPanel('node:node_cpu_utilisation:avg1m{node="$node"}', 'Utilisation') +
+          g.queryPanel('node:node_cpu_utilisation:avg5m{node="$node"}', 'Utilisation') +
           { yaxes: g.yaxes('percentunit') },
         )
         .addPanel(
