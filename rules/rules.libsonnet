@@ -159,7 +159,7 @@
             // CPU utilisation per node, normalized by cluster-wide CPUs
             record: 'node:cluster_cpu_utilisation:ratio',
             expr: |||
-              node:node_cpu_utilisation:avg1m
+              node:node_cpu_utilisation:avg5m
                 *
               node:node_num_cpu:sum
                 /
