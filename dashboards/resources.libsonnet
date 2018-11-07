@@ -19,10 +19,10 @@ local g = import 'grafana-builder/grafana.libsonnet';
            height: '100px',
            showTitle: false,
          })
-         .addPanel(
-           g.panel('CPU Utilisation') +
-           g.statPanel('1 - avg(rate(node_cpu_seconds_total{mode="idle"}[1m]))')
-         )
+        .addPanel(
+          g.panel('CPU Utilisation') +
+          g.statPanel('1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m]))')
+        )
         .addPanel(
           g.panel('CPU Requests Commitment') +
           g.statPanel('sum(kube_pod_container_resource_requests_cpu_cores) / sum(node:node_num_cpu:sum)')
