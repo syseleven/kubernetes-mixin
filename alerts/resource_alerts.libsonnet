@@ -92,7 +92,7 @@
 #          {
 #            alert: 'CPUThrottlingHigh',
 #            expr: |||
-#              100 * sum(increase(container_cpu_cfs_throttled_periods_total[5m])) by (container_name, pod_name, namespace) 
+#              100 * sum(increase(container_cpu_cfs_throttled_periods_total[5m])) by (container_name, pod_name, namespace)
 #                /
 #              sum(increase(container_cpu_cfs_periods_total[5m])) by (container_name, pod_name, namespace)
 #                > %(cpuThrottlingPercent)s
