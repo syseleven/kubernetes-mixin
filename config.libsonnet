@@ -10,6 +10,7 @@
     kubeControllerManagerSelector: 'job="controller-manager"',
     kubeApiserverSelector: 'job="apiserver"',
     podLabel: 'pod',
+    diskDeviceSelector: '(sd|xvd|nvme).+',
     namespaceSelector: null,
     prefixedNamespaceSelector: if self.namespaceSelector != null then self.namespaceSelector + ',' else '',
     hostNetworkInterfaceSelector: 'device="eth0"',
