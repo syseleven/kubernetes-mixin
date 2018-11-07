@@ -150,7 +150,7 @@
             record: 'node_mode:node_cpu_utilisation:avg5m',
             expr: |||
               avg by (node, mode) (
-                irate(node_cpu{%(nodeExporterSelector)s}[5m])
+                irate(node_cpu_seconds_total{%(nodeExporterSelector)s}[5m])
               * on (namespace, %(podLabel)s) group_left(node)
                 node_namespace_pod:kube_pod_info:)
             ||| % $._config,
@@ -341,15 +341,15 @@
           {
             record: 'node:node_filesystem_usage:',
             expr: |||
-              max by (namespace, %(podLabel)s, device) ((node_filesystem_size{%(fstypeSelector)s}
-              - node_filesystem_avail{%(fstypeSelector)s})
-              / node_filesystem_size{%(fstypeSelector)s})
+              max by (namespace, %(podLabel)s, device) ((node_filesystem_size_bytes{%(fstypeSelector)s}
+              - node_filesystem_avail_bytes{%(fstypeSelector)s})
+              / node_filesystem_size_bytes{%(fstypeSelector)s})
             ||| % $._config,
           },
           {
             record: 'node:node_filesystem_avail:',
             expr: |||
-              max by (namespace, %(podLabel)s, device) (node_filesystem_avail{%(fstypeSelector)s} / node_filesystem_size{%(fstypeSelector)s})
+              max by (namespace, %(podLabel)s, device) (node_filesystem_avail_bytes{%(fstypeSelector)s} / node_filesystem_size_bytes{%(fstypeSelector)s})
             ||| % $._config,
           },
           {
