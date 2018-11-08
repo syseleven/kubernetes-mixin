@@ -324,7 +324,7 @@
             // Disk saturation (ms spent, by rate() it's bound by 1 second)
             record: ':node_disk_saturation:avg_irate',
             expr: |||
-              avg(irate(node_disk_io_time_weighted_seconds_total_seconds_total{%(nodeExporterSelector)s,%(diskDeviceSelector)s}[5m]) / 1e3)
+              avg(irate(node_disk_io_time_weighted_seconds_total{%(nodeExporterSelector)s,%(diskDeviceSelector)s}[5m]) / 1e3)
             ||| % $._config,
           },
           {
