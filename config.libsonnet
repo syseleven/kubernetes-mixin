@@ -5,7 +5,6 @@
     kubeletSelector: 'job="kubelet"',
     kubeStateMetricsSelector: 'job="kube-state-metrics"',
     nodeExporterSelector: 'job="node-exporter"',
-    diskDeviceSelector: 'disk=~"(sd|xvd|nvme).+"',
     notKubeDnsSelector: 'job!="kube-dns"',
     kubeSchedulerSelector: 'job="kube-scheduler"',
     kubeControllerManagerSelector: 'job="controller-manager"',
@@ -14,6 +13,7 @@
     namespaceSelector: null,
     prefixedNamespaceSelector: if self.namespaceSelector != null then self.namespaceSelector + ',' else '',
     hostNetworkInterfaceSelector: 'device="eth0"',
+    hostMountpointSelector: 'mountpoint="/"',
 
     // We build alerts for the presence of all these jobs.
     jobs: {
@@ -43,6 +43,7 @@
     certExpirationWarningSeconds: 7 * 24 * 3600,
     certExpirationCriticalSeconds: 1 * 24 * 3600,
     cpuThrottlingPercent: 25,
+    cpuThrottlingSelector: '',
 
     // We alert when resources are expected to fill up in four days. Depending
     // on the data-set it might be useful to change the sampling-time for the
@@ -56,5 +57,9 @@
     // This list of filesystem is referenced in various expressions.
     fstypes: ['ext[234]', 'btrfs', 'xfs', 'zfs'],
     fstypeSelector: 'fstype=~"%s"' % std.join('|', self.fstypes),
+
+    // This list of disk device names is referenced in various expressions.
+    diskDevices: ['nvme.+', 'rbd.+', 'sd.+', 'vd.+', 'xvd.+'],
+    diskDeviceSelector: 'device=~"%s"' % std.join('|', self.diskDevices),
   },
 }
