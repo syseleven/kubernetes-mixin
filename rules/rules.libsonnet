@@ -7,65 +7,111 @@
           {
             record: 'namespace:container_cpu_usage_seconds_total:sum_rate',
             expr: |||
-              sum(rate(container_cpu_usage_seconds_total{%(cadvisorSelector)s, image!="", container_name!=""}[5m])) by (namespace)
+              sum(rate(container_cpu_usage_seconds_total{%(cadvisorSelector)s, image!="", container!="POD"}[5m])) by (namespace)
             ||| % $._config,
           },
           {
             // Reduces cardinality of this timeseries by #cores, which makes it
             // more useable in dashboards.  Also, allows us to do things like
             // quantile_over_time(...) which would otherwise not be possible.
-            record: 'namespace_pod_name_container_name:container_cpu_usage_seconds_total:sum_rate',
+            record: 'namespace_pod_container:container_cpu_usage_seconds_total:sum_rate',
             expr: |||
-              sum by (namespace, pod_name, container_name) (
-                rate(container_cpu_usage_seconds_total{%(cadvisorSelector)s, image!="", container_name!=""}[5m])
+              sum by (namespace, pod, container) (
+                rate(container_cpu_usage_seconds_total{%(cadvisorSelector)s, image!="", container!="POD"}[5m])
               )
             ||| % $._config,
           },
           {
             record: 'namespace:container_memory_usage_bytes:sum',
             expr: |||
-              sum(container_memory_usage_bytes{%(cadvisorSelector)s, image!="", container_name!=""}) by (namespace)
+              sum(container_memory_usage_bytes{%(cadvisorSelector)s, image!="", container!="POD"}) by (namespace)
             ||| % $._config,
           },
           {
-            record: 'namespace_name:container_cpu_usage_seconds_total:sum_rate',
+            record: 'namespace:container_cpu_usage_seconds_total:sum_rate',
             expr: |||
               sum by (namespace, label_name) (
-                 sum(rate(container_cpu_usage_seconds_total{%(cadvisorSelector)s, image!="", container_name!=""}[5m])) by (namespace, pod_name)
-               * on (namespace, pod_name) group_left(label_name)
-                 label_replace(kube_pod_labels{%(kubeStateMetricsSelector)s}, "pod_name", "$1", "pod", "(.*)")
+                  sum(rate(container_cpu_usage_seconds_total{%(cadvisorSelector)s, image!="", container!="POD"}[5m])) by (namespace, pod)
+                * on (namespace, pod)
+                  group_left(label_name) kube_pod_labels{%(kubeStateMetricsSelector)s}
               )
             ||| % $._config,
           },
           {
-            record: 'namespace_name:container_memory_usage_bytes:sum',
+            record: 'namespace:container_memory_usage_bytes:sum',
             expr: |||
               sum by (namespace, label_name) (
-                sum(container_memory_usage_bytes{%(cadvisorSelector)s,image!="", container_name!=""}) by (pod_name, namespace)
-              * on (namespace, pod_name) group_left(label_name)
-                label_replace(kube_pod_labels{%(kubeStateMetricsSelector)s}, "pod_name", "$1", "pod", "(.*)")
+                  sum(container_memory_usage_bytes{%(cadvisorSelector)s,image!="", container!="POD"}) by (pod, namespace)
+                * on (namespace, pod)
+                  group_left(label_name) kube_pod_labels{%(kubeStateMetricsSelector)s}
               )
             ||| % $._config,
           },
           {
-            record: 'namespace_name:kube_pod_container_resource_requests_memory_bytes:sum',
+            record: 'namespace:kube_pod_container_resource_requests_memory_bytes:sum',
             expr: |||
               sum by (namespace, label_name) (
-                sum(kube_pod_container_resource_requests_memory_bytes{%(kubeStateMetricsSelector)s}) by (namespace, pod)
-              * on (namespace, pod) group_left(label_name)
-                label_replace(kube_pod_labels{%(kubeStateMetricsSelector)s}, "pod_name", "$1", "pod", "(.*)")
+                  sum(kube_pod_container_resource_requests_memory_bytes{%(kubeStateMetricsSelector)s} * on (endpoint, instance, job, namespace, pod, service) group_left(phase) (kube_pod_status_phase{phase=~"^(Pending|Running)$"} == 1)) by (namespace, pod)
+                * on (namespace, pod)
+                  group_left(label_name) kube_pod_labels{%(kubeStateMetricsSelector)s}
               )
             ||| % $._config,
           },
           {
-            record: 'namespace_name:kube_pod_container_resource_requests_cpu_cores:sum',
+            record: 'namespace:kube_pod_container_resource_requests_cpu_cores:sum',
             expr: |||
               sum by (namespace, label_name) (
-                sum(kube_pod_container_resource_requests_cpu_cores{%(kubeStateMetricsSelector)s} and on(pod) kube_pod_status_scheduled{condition="true"}) by (namespace, pod)
-              * on (namespace, pod) group_left(label_name)
-                label_replace(kube_pod_labels{%(kubeStateMetricsSelector)s}, "pod_name", "$1", "pod", "(.*)")
+                  sum(kube_pod_container_resource_requests_cpu_cores{%(kubeStateMetricsSelector)s} * on (endpoint, instance, job, namespace, pod, service) group_left(phase) (kube_pod_status_phase{phase=~"^(Pending|Running)$"} == 1)) by (namespace, pod)
+                * on (namespace, pod)
+                  group_left(label_name) kube_pod_labels{%(kubeStateMetricsSelector)s}
               )
             ||| % $._config,
+          },
+          // workload aggregation for deployments
+          {
+            record: 'mixin_pod_workload',
+            expr: |||
+              sum(
+                label_replace(
+                  label_replace(
+                    kube_pod_owner{%(kubeStateMetricsSelector)s, owner_kind="ReplicaSet"},
+                    "replicaset", "$1", "owner_name", "(.*)"
+                  ) * on(replicaset, namespace) group_left(owner_name) kube_replicaset_owner{%(kubeStateMetricsSelector)s},
+                  "workload", "$1", "owner_name", "(.*)"
+                )
+              ) by (namespace, workload, pod)
+            ||| % $._config,
+            labels: {
+              workload_type: 'deployment',
+            },
+          },
+          {
+            record: 'mixin_pod_workload',
+            expr: |||
+              sum(
+                label_replace(
+                  kube_pod_owner{%(kubeStateMetricsSelector)s, owner_kind="DaemonSet"},
+                  "workload", "$1", "owner_name", "(.*)"
+                )
+              ) by (namespace, workload, pod)
+            ||| % $._config,
+            labels: {
+              workload_type: 'daemonset',
+            },
+          },
+          {
+            record: 'mixin_pod_workload',
+            expr: |||
+              sum(
+                label_replace(
+                  kube_pod_owner{%(kubeStateMetricsSelector)s, owner_kind="StatefulSet"},
+                  "workload", "$1", "owner_name", "(.*)"
+                )
+              ) by (namespace, workload, pod)
+            ||| % $._config,
+            labels: {
+              workload_type: 'statefulset',
+            },
           },
         ],
       },
@@ -75,23 +121,27 @@
           {
             record: 'cluster_quantile:%s:histogram_quantile' % metric,
             expr: |||
-              histogram_quantile(%(quantile)s, sum(rate(%(metric)s_microseconds_bucket{%(kubeSchedulerSelector)s}[5m])) without(instance, %(podLabel)s)) / 1e+06
+              histogram_quantile(%(quantile)s, sum(rate(%(metric)s_bucket{%(kubeSchedulerSelector)s}[5m])) without(instance, %(podLabel)s))
             ||| % ({ quantile: quantile, metric: metric } + $._config),
             labels: {
               quantile: quantile,
             },
           }
           for quantile in ['0.99', '0.9', '0.5']
-          for metric in ['scheduler_e2e_scheduling_latency', 'scheduler_scheduling_algorithm_latency', 'scheduler_binding_latency']
+          for metric in [
+            'scheduler_e2e_scheduling_duration_seconds',
+            'scheduler_scheduling_algorithm_duration_seconds',
+            'scheduler_binding_duration_seconds',
+          ]
         ],
       },
       {
         name: 'kube-apiserver.rules',
         rules: [
           {
-            record: 'cluster_quantile:apiserver_request_latencies:histogram_quantile',
+            record: 'cluster_quantile:apiserver_request_duration_seconds:histogram_quantile',
             expr: |||
-              histogram_quantile(%(quantile)s, sum(rate(apiserver_request_latencies_bucket{%(kubeApiserverSelector)s}[5m])) without(instance, %(podLabel)s)) / 1e+06
+              histogram_quantile(%(quantile)s, sum(rate(apiserver_request_duration_seconds_bucket{%(kubeApiserverSelector)s}[5m])) without(instance, %(podLabel)s))
             ||| % ({ quantile: quantile } + $._config),
             labels: {
               quantile: quantile,
@@ -303,14 +353,14 @@
             ||| % $._config,
           },
           {
-            // Disk utilisation (ms spent, by rate() it's bound by 1 second)
+            // Disk utilisation (seconds spent, by rate() it's bound by 1 second)
             record: ':node_disk_utilisation:avg_irate',
             expr: |||
               avg(irate(node_disk_io_time_seconds_total{%(nodeExporterSelector)s,%(diskDeviceSelector)s}[5m]))
             ||| % $._config,
           },
           {
-            // Disk utilisation (ms spent, by rate() it's bound by 1 second)
+            // Disk utilisation (seconds spent, by rate() it's bound by 1 second)
             record: 'node:node_disk_utilisation:avg_irate',
             expr: |||
               avg by (node) (
@@ -321,18 +371,18 @@
             ||| % $._config,
           },
           {
-            // Disk saturation (ms spent, by rate() it's bound by 1 second)
+            // Disk saturation (seconds spent, by rate() it's bound by 1 second)
             record: ':node_disk_saturation:avg_irate',
             expr: |||
-              avg(irate(node_disk_io_time_weighted_seconds_total{%(nodeExporterSelector)s,%(diskDeviceSelector)s}[5m]) / 1e3)
+              avg(irate(node_disk_io_time_weighted_seconds_total{%(nodeExporterSelector)s,%(diskDeviceSelector)s}[5m]))
             ||| % $._config,
           },
           {
-            // Disk saturation (ms spent, by rate() it's bound by 1 second)
+            // Disk saturation (seconds spent, by rate() it's bound by 1 second)
             record: 'node:node_disk_saturation:avg_irate',
             expr: |||
               avg by (node) (
-                irate(node_disk_io_time_weighted_seconds_total{%(nodeExporterSelector)s,%(diskDeviceSelector)s}[1m]) / 1e3
+                irate(node_disk_io_time_weighted_seconds_total{%(nodeExporterSelector)s,%(diskDeviceSelector)s}[1m])
               * on (namespace, %(podLabel)s) group_left(node)
                 node_namespace_pod:kube_pod_info:
               )
@@ -341,7 +391,7 @@
           {
             record: 'node:node_filesystem_usage:',
             expr: |||
-              max by (namespace, %(podLabel)s, device) ((node_filesystem_size_bytes{%(fstypeSelector)s}
+              max by (instance, namespace, %(podLabel)s, device) ((node_filesystem_size_bytes{%(fstypeSelector)s}
               - node_filesystem_avail_bytes{%(fstypeSelector)s})
               / node_filesystem_size_bytes{%(fstypeSelector)s})
             ||| % $._config,
@@ -349,7 +399,7 @@
           {
             record: 'node:node_filesystem_avail:',
             expr: |||
-              max by (namespace, %(podLabel)s, device) (node_filesystem_avail_bytes{%(fstypeSelector)s} / node_filesystem_size_bytes{%(fstypeSelector)s})
+              max by (instance, namespace, %(podLabel)s, device) (node_filesystem_avail_bytes{%(fstypeSelector)s} / node_filesystem_size_bytes{%(fstypeSelector)s})
             ||| % $._config,
           },
           {
@@ -403,19 +453,19 @@
             ||| % $._config,
           },
           {
-              record: 'node:node_inodes_free:',
-              expr: |||
+            record: 'node:node_inodes_free:',
+            expr: |||
+              max(
                 max(
-                  max(
-                    kube_pod_info{%(kubeStateMetricsSelector)s, host_ip!=""}
-                  ) by (node, host_ip)
-                  * on (host_ip) group_right (node)
-                  label_replace(
-                    (max(node_filesystem_files_free{%(nodeExporterSelector)s, %(hostMountpointSelector)s}) by (instance)), "host_ip", "$1", "instance", "(.*):.*"
-                  )
-                ) by (node)
-              ||| % $._config,
-          },          
+                  kube_pod_info{%(kubeStateMetricsSelector)s, host_ip!=""}
+                ) by (node, host_ip)
+                * on (host_ip) group_right (node)
+                label_replace(
+                  (max(node_filesystem_files_free{%(nodeExporterSelector)s, %(hostMountpointSelector)s}) by (instance)), "host_ip", "$1", "instance", "(.*):.*"
+                )
+              ) by (node)
+            ||| % $._config,
+          },
         ],
       },
     ],

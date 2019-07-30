@@ -1,8 +1,19 @@
 # Prometheus Monitoring Mixin for Kubernetes
+[![CircleCI](https://circleci.com/gh/kubernetes-monitoring/kubernetes-mixin/tree/master.svg?style=shield)](https://circleci.com/gh/kubernetes-monitoring/kubernetes-mixin)
 
-> NOTE: This project is *alpha* stage. Flags, configuration, behaviour and design may change significantly in following releases.
+> NOTE: This project is *pre-release* stage. Flags, configuration, behaviour and design may change significantly in following releases.
 
 A set of Grafana dashboards and Prometheus alerts for Kubernetes.
+
+## Releases
+
+| Release | Kubernetes Compatibility   |
+| ------- | -------------------------- |
+| master  | Kubernetes 1.14+           |
+| v0.1.x  | Kubernetes 1.13 and before |
+
+In Kubernetes 1.14 there was a major [metrics overhaul](https://github.com/kubernetes/enhancements/blob/master/keps/sig-instrumentation/0031-kubernetes-metrics-overhaul.md) implemented.
+Therefore v0.1.x of this repository is the last release to support Kubernetes 1.13 and previous version on a best effort basis.
 
 ## How to use
 
@@ -44,6 +55,25 @@ The `prometheus_alerts.yaml` and `prometheus_rules.yaml` file then need to passe
 to your Prometheus server, and the files in `dashboards_out` need to be imported
 into you Grafana server.  The exact details will depending on how you deploy your
 monitoring stack to Kubernetes.
+
+### Dashboards for Windows Nodes
+There are separate dashboards for windows resources.
+1) Compute Resources / Cluster(Windows)
+2) Compute Resources / Namespace(Windows)
+3) Compute Resources / Pod(Windows)
+4) USE Method / Cluster(Windows)
+5) USE Method / Node(Windows)
+
+These dashboards are based on metrics populated by wmi_exporter(https://github.com/martinlindhe/wmi_exporter) from each Windows node.
+
+Steps to configure wmi_exporter
+1) Download the latest version(v0.7.0 or higher) of wmi_exporter from release page(https://github.com/martinlindhe/wmi_exporter/releases/)
+2) Install the wmi_exporter service.
+```
+  msiexec /i <path-to-msi-file> ENABLED_COLLECTORS=cpu,cs,logical_disk,net,os,system,container,memory LISTEN_PORT=<PORT>
+```
+3) Update the Prometheus server to scrap the metrics from wmi_exporter endpoint.
+
 
 ## Using with prometheus-ksonnet
 
@@ -103,10 +133,21 @@ $ ks apply default
 
 TODO
 
+## Multi-cluster support
+
+Kubernetes-mixin can support dashboards across multiple clusters. You need either a multi-cluster [Thanos](https://github.com/improbable-eng/thanos) installation with `external_labels` configured or a [Cortex](https://github.com/cortexproject/cortex) system where a cluster label exists. To enable this feature you need to configure the following:
+
+```
+    // Opt-in to multiCluster dashboards by overriding this and the clusterLabel.
+    showMultiCluster: true,
+    clusterLabel: '<your cluster label>',
+```
+
 ## Customising the mixin
 
 Kubernetes-mixin allows you to override the selectors used for various jobs,
-to match those used in your Prometheus set.
+to match those used in your Prometheus set. You can also customize the dashboard
+names and add grafana tags.
 
 In a new directory, add a file `mixin.libsonnet`:
 
@@ -119,6 +160,10 @@ kubernetes {
     cadvisorSelector: 'job="kubernetes-cadvisor"',
     nodeExporterSelector: 'job="kubernetes-node-exporter"',
     kubeletSelector: 'job="kubernetes-kubelet"',
+    grafanaK8s+:: {
+      dashboardNamePrefix: 'Mixin / ',
+      dashboardTags: ['kubernetes', 'infrastucture'],
+    },
   },
 }
 ```

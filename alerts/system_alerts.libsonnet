@@ -1,3 +1,5 @@
+local utils = import 'utils.libsonnet';
+
 {
   prometheusAlerts+:: {
     groups+: [
@@ -20,14 +22,14 @@
           {
             alert: 'KubeVersionMismatch',
             expr: |||
-              count(count(kubernetes_build_info{%(notKubeDnsSelector)s}) by (gitVersion)) > 1
+              count(count by (gitVersion) (label_replace(kubernetes_build_info{%(notKubeDnsSelector)s},"gitVersion","$1","gitVersion","(v[0-9]*.[0-9]*.[0-9]*).*"))) > 1
             ||| % $._config,
             'for': '1h',
             labels: {
               severity: 'warning',
             },
             annotations: {
-              message: 'There are {{ $value }} different versions of Kubernetes components running.',
+              message: 'There are {{ $value }} different semantic versions of Kubernetes components running.',
             },
           },
           {
@@ -78,7 +80,7 @@
           {
             alert: 'KubeAPILatencyHigh',
             expr: |||
-              cluster_quantile:apiserver_request_latencies:histogram_quantile{%(kubeApiserverSelector)s,quantile="0.99",subresource!="log",verb!~"^(?:LIST|WATCH|WATCHLIST|PROXY|CONNECT)$"} > 1
+              cluster_quantile:apiserver_request_duration_seconds:histogram_quantile{%(kubeApiserverSelector)s,quantile="0.99",subresource!="log",verb!~"^(?:LIST|WATCH|WATCHLIST|PROXY|CONNECT)$"} > %(kubeAPILatencyWarningSeconds)s
             ||| % $._config,
             'for': '10m',
             labels: {
@@ -91,7 +93,7 @@
           {
             alert: 'KubeAPILatencyHigh',
             expr: |||
-              cluster_quantile:apiserver_request_latencies:histogram_quantile{%(kubeApiserverSelector)s,quantile="0.99",subresource!="log",verb!~"^(?:LIST|WATCH|WATCHLIST|PROXY|CONNECT)$"} > 4
+              cluster_quantile:apiserver_request_duration_seconds:histogram_quantile{%(kubeApiserverSelector)s,quantile="0.99",subresource!="log",verb!~"^(?:LIST|WATCH|WATCHLIST|PROXY|CONNECT)$"} > %(kubeAPILatencyCriticalSeconds)s
             ||| % $._config,
             'for': '10m',
             labels: {
@@ -104,9 +106,9 @@
           {
             alert: 'KubeAPIErrorsHigh',
             expr: |||
-              sum(rate(apiserver_request_count{%(kubeApiserverSelector)s,code=~"^(?:5..)$"}[5m]))
+              sum(rate(apiserver_request_total{%(kubeApiserverSelector)s,code=~"^(?:5..)$"}[5m]))
                 /
-              sum(rate(apiserver_request_count{%(kubeApiserverSelector)s}[5m])) * 100 > 3
+              sum(rate(apiserver_request_total{%(kubeApiserverSelector)s}[5m])) * 100 > 3
             ||| % $._config,
             'for': '10m',
             labels: {
@@ -119,9 +121,9 @@
           {
             alert: 'KubeAPIErrorsHigh',
             expr: |||
-              sum(rate(apiserver_request_count{%(kubeApiserverSelector)s,code=~"^(?:5..)$"}[5m]))
+              sum(rate(apiserver_request_total{%(kubeApiserverSelector)s,code=~"^(?:5..)$"}[5m]))
                 /
-              sum(rate(apiserver_request_count{%(kubeApiserverSelector)s}[5m])) * 100 > 1
+              sum(rate(apiserver_request_total{%(kubeApiserverSelector)s}[5m])) * 100 > 1
             ||| % $._config,
             'for': '10m',
             labels: {
@@ -134,9 +136,9 @@
           {
             alert: 'KubeAPIErrorsHigh',
             expr: |||
-              sum(rate(apiserver_request_count{%(kubeApiserverSelector)s,code=~"^(?:5..)$"}[5m])) by (resource,subresource,verb)
+              sum(rate(apiserver_request_total{%(kubeApiserverSelector)s,code=~"^(?:5..)$"}[5m])) by (resource,subresource,verb)
                 /
-              sum(rate(apiserver_request_count{%(kubeApiserverSelector)s}[5m])) by (resource,subresource,verb) * 100 > 10
+              sum(rate(apiserver_request_total{%(kubeApiserverSelector)s}[5m])) by (resource,subresource,verb) * 100 > 10
             ||| % $._config,
             'for': '10m',
             labels: {
@@ -149,9 +151,9 @@
           {
             alert: 'KubeAPIErrorsHigh',
             expr: |||
-              sum(rate(apiserver_request_count{%(kubeApiserverSelector)s,code=~"^(?:5..)$"}[5m])) by (resource,subresource,verb)
+              sum(rate(apiserver_request_total{%(kubeApiserverSelector)s,code=~"^(?:5..)$"}[5m])) by (resource,subresource,verb)
                 /
-              sum(rate(apiserver_request_count{%(kubeApiserverSelector)s}[5m])) by (resource,subresource,verb) * 100 > 5
+              sum(rate(apiserver_request_total{%(kubeApiserverSelector)s}[5m])) by (resource,subresource,verb) * 100 > 5
             ||| % $._config,
             'for': '10m',
             labels: {
@@ -164,25 +166,25 @@
           {
             alert: 'KubeClientCertificateExpiration',
             expr: |||
-              histogram_quantile(0.01, sum by (job, le) (rate(apiserver_client_certificate_expiration_seconds_bucket{%(kubeApiserverSelector)s}[5m]))) < %(certExpirationWarningSeconds)s
+              apiserver_client_certificate_expiration_seconds_count{%(kubeApiserverSelector)s} > 0 and histogram_quantile(0.01, sum by (job, le) (rate(apiserver_client_certificate_expiration_seconds_bucket{%(kubeApiserverSelector)s}[5m]))) < %(certExpirationWarningSeconds)s
             ||| % $._config,
             labels: {
               severity: 'warning',
             },
             annotations: {
-              message: 'A client certificate used to authenticate to the apiserver is expiring in less than %d days.' % ($._config.certExpirationWarningSeconds / 3600 / 24),
+              message: 'A client certificate used to authenticate to the apiserver is expiring in less than %s.' % (utils.humanizeSeconds($._config.certExpirationWarningSeconds)),
             },
           },
           {
             alert: 'KubeClientCertificateExpiration',
             expr: |||
-              histogram_quantile(0.01, sum by (job, le) (rate(apiserver_client_certificate_expiration_seconds_bucket{%(kubeApiserverSelector)s}[5m]))) < %(certExpirationCriticalSeconds)s
+              apiserver_client_certificate_expiration_seconds_count{%(kubeApiserverSelector)s} > 0 and histogram_quantile(0.01, sum by (job, le) (rate(apiserver_client_certificate_expiration_seconds_bucket{%(kubeApiserverSelector)s}[5m]))) < %(certExpirationCriticalSeconds)s
             ||| % $._config,
             labels: {
               severity: 'critical',
             },
             annotations: {
-              message: 'A client certificate used to authenticate to the apiserver is expiring in less than %d hours.' % ($._config.certExpirationCriticalSeconds / 3600),
+              message: 'A client certificate used to authenticate to the apiserver is expiring in less than %s.' % (utils.humanizeSeconds($._config.certExpirationCriticalSeconds)),
             },
           },
         ],
