@@ -20,7 +20,7 @@
             ||| % $._config,
             'for': '3h',
             labels: {
-              severity: 'warning',
+              severity: 'critical',
             },
             annotations: {
               message: 'Based on recent sampling, the PersistentVolume claimed by {{ $labels.persistentvolumeclaim }} in Namespace {{ $labels.namespace }} is expected to fill up within four days. Currently {{ printf "%0.2f" $value }}% is available.',
