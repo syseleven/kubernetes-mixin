@@ -1,4 +1,4 @@
-local grafana = import 'grafonnet/grafana.libsonnet';
+local grafana = import 'github.com/grafana/grafonnet-lib/grafonnet/grafana.libsonnet';
 local dashboard = grafana.dashboard;
 local row = grafana.row;
 local prometheus = grafana.prometheus;
@@ -48,6 +48,7 @@ local gauge = promgrafonnet.gauge;
       local sizeGauge = gauge.new(
         'Volume Space Usage',
         |||
+          max without(instance,node) (
           (
             kubelet_volume_stats_capacity_bytes{%(clusterLabel)s="$cluster", %(kubeletSelector)s, namespace="$namespace", persistentvolumeclaim="$volume"}
             -
@@ -55,7 +56,7 @@ local gauge = promgrafonnet.gauge;
           )
           /
           kubelet_volume_stats_capacity_bytes{%(clusterLabel)s="$cluster", %(kubeletSelector)s, namespace="$namespace", persistentvolumeclaim="$volume"}
-          * 100
+          * 100)
         ||| % $._config,
       ).withLowerBeingBetter();
 
@@ -97,10 +98,11 @@ local gauge = promgrafonnet.gauge;
       local inodeGauge = gauge.new(
         'Volume inodes Usage',
         |||
+          max without(instance,node) (
           kubelet_volume_stats_inodes_used{%(clusterLabel)s="$cluster", %(kubeletSelector)s, namespace="$namespace", persistentvolumeclaim="$volume"}
           /
           kubelet_volume_stats_inodes{%(clusterLabel)s="$cluster", %(kubeletSelector)s, namespace="$namespace", persistentvolumeclaim="$volume"}
-          * 100
+          * 100)
         ||| % $._config,
       ).withLowerBeingBetter();
 
@@ -113,8 +115,8 @@ local gauge = promgrafonnet.gauge;
       ).addTemplate(
         {
           current: {
-            text: 'Prometheus',
-            value: 'Prometheus',
+            text: 'default',
+            value: 'default',
           },
           hide: 0,
           label: null,
@@ -134,6 +136,7 @@ local gauge = promgrafonnet.gauge;
           label='cluster',
           refresh='time',
           hide=if $._config.showMultiCluster then '' else 'variable',
+          sort=1,
         )
       )
       .addTemplate(
@@ -143,6 +146,7 @@ local gauge = promgrafonnet.gauge;
           'label_values(kubelet_volume_stats_capacity_bytes{%(clusterLabel)s="$cluster", %(kubeletSelector)s}, namespace)' % $._config,
           label='Namespace',
           refresh='time',
+          sort=1,
         )
       )
       .addTemplate(
@@ -152,6 +156,7 @@ local gauge = promgrafonnet.gauge;
           'label_values(kubelet_volume_stats_capacity_bytes{%(clusterLabel)s="$cluster", %(kubeletSelector)s, namespace="$namespace"}, persistentvolumeclaim)' % $._config,
           label='PersistentVolumeClaim',
           refresh='time',
+          sort=1,
         )
       )
       .addRow(
@@ -163,6 +168,6 @@ local gauge = promgrafonnet.gauge;
         row.new()
         .addPanel(inodesGraph)
         .addPanel(inodeGauge)
-      ),
+      ) + { refresh: $._config.grafanaK8s.refresh },
   },
 }

@@ -1,4 +1,4 @@
-local grafana = import 'grafonnet/grafana.libsonnet';
+local grafana = import 'github.com/grafana/grafonnet-lib/grafonnet/grafana.libsonnet';
 local dashboard = grafana.dashboard;
 local row = grafana.row;
 local prometheus = grafana.prometheus;
@@ -25,11 +25,11 @@ local singlestat = grafana.singlestat;
           span=5,
           format='ops',
           min=0,
-          legend_show='true',
-          legend_values='true',
-          legend_current='true',
-          legend_alignAsTable='true',
-          legend_rightSide='true',
+          legend_show=true,
+          legend_values=true,
+          legend_current=true,
+          legend_alignAsTable=true,
+          legend_rightSide=true,
         )
         .addTarget(prometheus.target('sum(rate(scheduler_e2e_scheduling_duration_seconds_count{%(kubeSchedulerSelector)s, instance=~"$instance"}[5m])) by (instance)' % $._config, legendFormat='{{instance}} e2e'))
         .addTarget(prometheus.target('sum(rate(scheduler_binding_duration_seconds_count{%(kubeSchedulerSelector)s, instance=~"$instance"}[5m])) by (instance)' % $._config, legendFormat='{{instance}} binding'))
@@ -44,11 +44,11 @@ local singlestat = grafana.singlestat;
           span=5,
           min=0,
           format='s',
-          legend_show='true',
-          legend_values='true',
-          legend_current='true',
-          legend_alignAsTable='true',
-          legend_rightSide='true',
+          legend_show=true,
+          legend_values=true,
+          legend_current=true,
+          legend_alignAsTable=true,
+          legend_rightSide=true,
         )
         .addTarget(prometheus.target('histogram_quantile(0.99, sum(rate(scheduler_e2e_scheduling_duration_seconds_bucket{%(kubeSchedulerSelector)s,instance=~"$instance"}[5m])) by (instance, le))' % $._config, legendFormat='{{instance}} e2e'))
         .addTarget(prometheus.target('histogram_quantile(0.99, sum(rate(scheduler_binding_duration_seconds_bucket{%(kubeSchedulerSelector)s,instance=~"$instance"}[5m])) by (instance, le))' % $._config, legendFormat='{{instance}} binding'))
@@ -76,7 +76,7 @@ local singlestat = grafana.singlestat;
           format='s',
           min=0,
         )
-        .addTarget(prometheus.target('histogram_quantile(0.99, sum(rate(rest_client_request_latency_seconds_bucket{%(kubeSchedulerSelector)s, instance=~"$instance", verb="POST"}[5m])) by (verb, url, le))' % $._config, legendFormat='{{verb}} {{url}}'));
+        .addTarget(prometheus.target('histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{%(kubeSchedulerSelector)s, instance=~"$instance", verb="POST"}[5m])) by (verb, url, le))' % $._config, legendFormat='{{verb}} {{url}}'));
 
       local getRequestLatency =
         graphPanel.new(
@@ -85,13 +85,13 @@ local singlestat = grafana.singlestat;
           span=12,
           format='s',
           min=0,
-          legend_show='true',
-          legend_values='true',
-          legend_current='true',
-          legend_alignAsTable='true',
-          legend_rightSide='true',
+          legend_show=true,
+          legend_values=true,
+          legend_current=true,
+          legend_alignAsTable=true,
+          legend_rightSide=true,
         )
-        .addTarget(prometheus.target('histogram_quantile(0.99, sum(rate(rest_client_request_latency_seconds_bucket{%(kubeSchedulerSelector)s, instance=~"$instance", verb="GET"}[5m])) by (verb, url, le))' % $._config, legendFormat='{{verb}} {{url}}'));
+        .addTarget(prometheus.target('histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{%(kubeSchedulerSelector)s, instance=~"$instance", verb="GET"}[5m])) by (verb, url, le))' % $._config, legendFormat='{{verb}} {{url}}'));
 
       local memory =
         graphPanel.new(
@@ -130,8 +130,8 @@ local singlestat = grafana.singlestat;
       ).addTemplate(
         {
           current: {
-            text: 'Prometheus',
-            value: 'Prometheus',
+            text: 'default',
+            value: 'default',
           },
           hide: 0,
           label: null,
@@ -150,6 +150,7 @@ local singlestat = grafana.singlestat;
           'label_values(process_cpu_seconds_total{%(kubeSchedulerSelector)s}, instance)' % $._config,
           refresh='time',
           includeAll=true,
+          sort=1,
         )
       )
       .addRow(
@@ -169,6 +170,6 @@ local singlestat = grafana.singlestat;
         .addPanel(memory)
         .addPanel(cpu)
         .addPanel(goroutines)
-      ),
+      ) + { refresh: $._config.grafanaK8s.refresh },
   },
 }
