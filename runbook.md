@@ -27,25 +27,28 @@ This page collects this repositories alerts and begins the process of describing
 ### Group Name: kubernetes-apps
 ##### Alert Name: KubePodCrashLooping
 + *Message*: `{{ $labels.namespace }}/{{ $labels.pod }} ({{ $labels.container }}) is restarting {{ printf \"%.2f\" $value }} / second`
-+ *Severity*: critical
++ *Severity*: warning
 ##### Alert Name: "KubePodNotReady"
 + *Message*: `{{ $labels.namespace }}/{{ $labels.pod }} is not ready.`
-+ *Severity*: critical
++ *Severity*: warning
 ##### Alert Name: "KubeDeploymentGenerationMismatch"
 + *Message*: `Deployment {{ $labels.namespace }}/{{ $labels.deployment }} generation mismatch`
-+ *Severity*: critical
++ *Severity*: warning
 ##### Alert Name: "KubeDeploymentReplicasMismatch"
 + *Message*: `Deployment {{ $labels.namespace }}/{{ $labels.deployment }} replica mismatch`
-+ *Severity*: critical
++ *Severity*: warning
 ##### Alert Name: "KubeStatefulSetReplicasMismatch"
 + *Message*: `StatefulSet {{ $labels.namespace }}/{{ $labels.statefulset }} replica mismatch`
-+ *Severity*: critical
++ *Severity*: warning
 ##### Alert Name: "KubeStatefulSetGenerationMismatch"
 + *Message*: `StatefulSet {{ $labels.namespace }}/{{ $labels.statefulset }} generation mismatch`
-+ *Severity*: critical
++ *Severity*: warning
 ##### Alert Name: "KubeDaemonSetRolloutStuck"
 + *Message*: `Only {{$value | humanizePercentage }} of desired pods scheduled and ready for daemon set {{$labels.namespace}}/{{$labels.daemonset}}`
-+ *Severity*: critical
++ *Severity*: warning
+##### Alert Name: "KubeContainerWaiting"
++ *Message*: `{{ $labels.namespace }}/{{ $labels.pod }} ({{ $labels.container }}) is in waiting state.`
++ *Severity*: warning
 ##### Alert Name: "KubeDaemonSetNotScheduled"
 + *Message*: `A number of pods of daemonset {{$labels.namespace}}/{{$labels.daemonset}} are not scheduled.`
 + *Severity*: warning
@@ -53,11 +56,6 @@ This page collects this repositories alerts and begins the process of describing
 ##### Alert Name: "KubeDaemonSetMisScheduled"
 + *Message*: `A number of pods of daemonset {{$labels.namespace}}/{{$labels.daemonset}} are running where they are not supposed to run.`
 + *Severity*: warning
-
-##### Alert Name: "KubeCronJobRunning"
-+ *Message*: `CronJob {{ $labels.namespace }}/{{ $labels.cronjob }} is taking more than 1h to complete.`
-+ *Severity*: warning
-+ *Action*: Check the cronjob using `kubectl describe cronjob <cronjob>` and look at the pod logs using `kubectl logs <pod>` for further information.
 
 ##### Alert Name: "KubeJobCompletion"
 + *Message*: `Job {{ $labels.namespace }}/{{ $labels.job_name }} is taking more than 1h to complete.`
@@ -71,27 +69,33 @@ This page collects this repositories alerts and begins the process of describing
 
 ### Group Name: "kubernetes-resources"
 ##### Alert Name: "KubeCPUOvercommit"
-+ *Message*: `Overcommited CPU resource requests on Pods, cannot tolerate node failure.`
++ *Message*: `Cluster has overcommitted CPU resource requests for Pods and cannot tolerate node failure.`
 + *Severity*: warning
 ##### Alert Name: "KubeMemOvercommit"
-+ *Message*: `Overcommited Memory resource requests on Pods, cannot tolerate node failure.`
++ *Message*: `Cluster has overcommitted memory resource requests for Pods and cannot tolerate node failure.`
 + *Severity*: warning
-##### Alert Name: "KubeCPUOvercommit"
-+ *Message*: `Overcommited CPU resource request quota on Namespaces.`
+##### Alert Name: "KubeCPUQuotaOvercommit"
++ *Message*: `Cluster has overcommitted CPU resource requests for Namespaces.`
 + *Severity*: warning
-##### Alert Name: "KubeMemOvercommit"
-+ *Message*: `Overcommited Memory resource request quota on Namespaces.`
+##### Alert Name: "KubeMemQuotaOvercommit"
++ *Message*: `Cluster has overcommitted memory resource requests for Namespaces.`
 + *Severity*: warning
+##### Alert Name: "KubeQuotaAlmostFull"
++ *Message*: `{{ $value | humanizePercentage }} usage of {{ $labels.resource }} in namespace {{ $labels.namespace }}.`
++ *Severity*: info
+##### Alert Name: "KubeQuotaFullyUsed"
++ *Message*: `{{ $value | humanizePercentage }} usage of {{ $labels.resource }} in namespace {{ $labels.namespace }}.`
++ *Severity*: info
 ##### Alert Name: "KubeQuotaExceeded"
 + *Message*: `{{ $value | humanizePercentage }} usage of {{ $labels.resource }} in namespace {{ $labels.namespace }}.`
 + *Severity*: warning
 ### Group Name: "kubernetes-storage"
-##### Alert Name: "KubePersistentVolumeUsageCritical"
+##### Alert Name: "KubePersistentVolumeFillingUp"
 + *Message*: `The persistent volume claimed by {{ $labels.persistentvolumeclaim }} in namespace {{ $labels.namespace }} has {{ $value | humanizePercentage }} free.`
 + *Severity*: critical
-##### Alert Name: "KubePersistentVolumeFullInFourDays"
+##### Alert Name: "KubePersistentVolumeFillingUp"
 + *Message*: `Based on recent sampling, the persistent volume claimed by {{ $labels.persistentvolumeclaim }} in namespace {{ $labels.namespace }} is expected to fill up within four days.`
-+ *Severity*: critical
++ *Severity*: warning
 ### Group Name: "kubernetes-system"
 ##### Alert Name: "KubeNodeNotReady"
 + *Message*: `{{ $labels.node }} has been unready for more than an 15 minutes"`
@@ -108,24 +112,16 @@ This page collects this repositories alerts and begins the process of describing
 ##### Alert Name: "KubeletTooManyPods"
 + *Message*: `Kubelet {{$labels.instance}} is running {{$value}} pods, close to the limit of 110.`
 + *Severity*: warning
-##### Alert Name: "KubeAPILatencyHigh"
-+ *Message*: `The API server has a 99th percentile latency of {{ $value }} seconds for {{$labels.verb}} {{$labels.resource}}.`
-+ *Severity*: warning
-##### Alert Name: "KubeAPILatencyHigh"
-+ *Message*: `The API server has a 99th percentile latency of {{ $value }} seconds for {{$labels.verb}} {{$labels.resource}}.`
-+ *Severity*: critical
-##### Alert Name: "KubeAPIErrorsHigh"
-+ *Message*: `API server is erroring for {{ $value | humanizePercentage }} of requests.`
-+ *Severity*: critical
-##### Alert Name: "KubeAPIErrorsHigh"
-+ *Message*: `API server is erroring for {{ $value | humanizePercentage }} of requests.`
-+ *Severity*: warning
 ##### Alert Name: "KubeClientCertificateExpiration"
 + *Message*: `A client certificate used to authenticate to the apiserver is expiring in less than 7 days.`
 + *Severity*: warning
 ##### Alert Name: "KubeClientCertificateExpiration"
 + *Message*: `A client certificate used to authenticate to the apiserver is expiring in less than 1 day.`
 + *Severity*: critical
+##### Alert Name: "KubeAPITerminatedRequests"
++ *Message*: `The apiserver has terminated {{ $value | humanizePercentage }} of its incoming requests.`
++ *Severity*: warning
++ *Action*: Use the `apiserver_flowcontrol_rejected_requests_total` metric to determine which flow schema is throttling the traffic to the API Server. The flow schema also provides information on the affected resources and subjects.
 
 ## Other Kubernetes Runbooks and troubleshooting
 + [Troubleshoot Clusters ](https://kubernetes.io/docs/tasks/debug-application-cluster/debug-cluster/)
