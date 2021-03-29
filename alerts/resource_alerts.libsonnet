@@ -155,7 +155,7 @@
             ||| % $._config,
             'for': '15m',
             labels: {
-              severity: 'info',
+              severity: 'warning',
             },
             annotations: {
               description: '{{ $value | humanizePercentage }} throttling of CPU in namespace {{ $labels.namespace }} for container {{ $labels.container }} in pod {{ $labels.pod }}.',
