@@ -49,24 +49,21 @@
           },
           {
             alert: 'KubeletTooManyPods',
-            // Some node has a capacity of 1 like AWS's Fargate and only exists while a pod is running on it.
-            // We have to ignore this special node in the KubeletTooManyPods alert.
+            // Replace original rule, because it creates a lot of non-actionable alerts
+            // Depends on custom rules from ../rules/kubelet.libsonnet
             expr: |||
-              count by(node) (
-                (kube_pod_status_phase{%(kubeStateMetricsSelector)s,phase="Running"} == 1) * on(instance,pod,namespace,cluster) group_left(node) topk by(instance,pod,namespace,cluster) (1, kube_pod_info{%(kubeStateMetricsSelector)s})
-              )
+              node_type:kube_pod_info:count
               /
-              max by(node) (
-                kube_node_status_capacity_pods{%(kubeStateMetricsSelector)s} != 1
-              ) > 0.95
+              node_type:kube_node_status_capacity_pods_unless_unschedulable:sum
+              > 0.8
             ||| % $._config,
             'for': '15m',
             labels: {
               severity: 'warning',
             },
             annotations: {
-              description: "Kubelet '{{ $labels.node }}' is running at {{ $value | humanizePercentage }} of its Pod capacity.",
-              summary: 'Kubelet is running at capacity.',
+              description: "Kubelets of worker pool of type '{{ $labels.node_type }}' exhaust {{ $value | humanizePercentage }} of their configured pod limits.",
+              summary: "Kubelets are running at capacity.",
             },
           },
           {

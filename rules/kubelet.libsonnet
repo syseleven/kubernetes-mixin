@@ -18,6 +18,19 @@
             },
           }
           for quantile in ['0.99', '0.9', '0.5']
+        ] + [
+          {
+            record: 'node_type:kube_node_status_capacity_pods_unless_unschedulable:sum',
+            expr: |||
+              sum by (node_type) (label_replace(kube_node_status_capacity_pods{job="kube-state-metrics"} unless kube_node_spec_unschedulable{job="kube-state-metrics"} == 1, "node_type", "$1", "node", "([^0-9]+)[0-9].*"))
+            |||,
+          },
+          {
+            record: 'node_type:kube_pod_info:count',
+            expr: |||
+              count by (node_type) (label_replace(kube_pod_info{job="kube-state-metrics"}, "node_type", "$1", "node", "([^0-9]+)[0-9].*"))
+            |||,
+          },
         ],
       },
     ],
