@@ -83,15 +83,42 @@ tests:
 - interval: 1m
   input_series:
   - series: 'kube_node_status_capacity_pods{instance="172.17.0.5:8443",node="worker01",job="kube-state-metrics", namespace="kube-system"}'
-    values: '3+0x15'
-  - series: 'kube_node_spec_unschedulable{instance="172.17.0.5:8443",node="worker01",job="kube-state-metrics", namespace="kube-system"}'
+    values: '2+0x15'
+  - series: 'kube_node_status_capacity_pods{instance="152.17.0.5:8443",node="worker02",job="kube-state-metrics", namespace="kube-system"}'
+    values: '2+0x15'
+  - series: 'kube_node_spec_unschedulable{instance="152.17.0.5:8443",node="worker01",job="kube-state-metrics", namespace="kube-system"}'
     values: '0+0x15'
-  - series: 'kube_pod_info{endpoint="https-main",instance="172.17.0.5:8443",job="kube-state-metrics",namespace="kube-system",node="worker01",pod="pod-1",service="kube-state-metrics"}'
+  - series: 'kube_node_spec_unschedulable{instance="152.17.0.5:8443",node="worker02",job="kube-state-metrics", namespace="kube-system"}'
     values: '1+0x15'
-  - series: 'kube_pod_info{endpoint="https-main",instance="172.17.0.5:8443",job="kube-state-metrics",namespace="kube-system",node="worker01",pod="pod-2",service="kube-state-metrics"}'
+  - series: 'kube_pod_info{endpoint="https-main",instance="152.17.0.5:8443",job="kube-state-metrics",namespace="kube-system",node="worker01",pod="pod-1",service="kube-state-metrics"}'
     values: '1+0x15'
-  - series: 'kube_pod_info{endpoint="https-main",instance="172.17.0.5:8443",job="kube-state-metrics",namespace="kube-system",node="worker01",pod="pod-3",service="kube-state-metrics"}'
+  - series: 'kube_pod_info{endpoint="https-main",instance="152.17.0.5:8443",job="kube-state-metrics",namespace="kube-system",node="worker01",pod="pod-2",service="kube-state-metrics"}'
     values: '1+0x15'
+  - series: 'kube_node_status_capacity_pods{instance="152.17.0.5:8443",node="master01",job="kube-state-metrics", namespace="kube-system"}'
+    values: '2+0x15'
+  - series: 'kube_node_status_capacity_pods{instance="152.17.0.5:8443",node="master02",job="kube-state-metrics", namespace="kube-system"}'
+    values: '2+0x15'
+  - series: 'kube_node_spec_unschedulable{instance="152.17.0.5:8443",node="master01",job="kube-state-metrics", namespace="kube-system"}'
+    values: '0+0x15'
+  - series: 'kube_node_spec_unschedulable{instance="152.17.0.5:8443",node="master02",job="kube-state-metrics", namespace="kube-system"}'
+    values: '0+0x15'
+  - series: 'kube_pod_info{endpoint="https-main",instance="152.17.0.5:8443",job="kube-state-metrics",namespace="kube-system",node="master01",pod="master-pod-1",service="kube-state-metrics"}'
+    values: '1+0x15'
+  - series: 'kube_pod_info{endpoint="https-main",instance="152.17.0.5:8443",job="kube-state-metrics",namespace="kube-system",node="master02",pod="master-pod-2",service="kube-state-metrics"}'
+    values: '1+0x15'
+  promql_expr_test:
+  - expr: 'node_type:kube_node_status_capacity_pods_unless_unschedulable:sum'
+    exp_samples:
+    - labels: 'node_type:kube_node_status_capacity_pods_unless_unschedulable:sum{node_type="worker"}'
+      value: 2
+    - labels: 'node_type:kube_node_status_capacity_pods_unless_unschedulable:sum{node_type="master"}'
+      value: 4
+  - expr: 'node_type:kube_pod_info:count'
+    exp_samples:
+    - labels: 'node_type:kube_pod_info:count{node_type="worker"}'
+      value: 2
+    - labels: 'node_type:kube_pod_info:count{node_type="master"}'
+      value: 2
   alert_rule_test:
   - eval_time: 10m
     alertname: KubeletTooManyPods
