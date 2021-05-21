@@ -364,6 +364,7 @@ local singlestat = grafana.singlestat;
           'label_values(kubelet_runtime_operations_total{%(clusterLabel)s="$cluster", %(kubeletSelector)s}, instance)' % $._config,
           refresh='time',
           includeAll=true,
+          allValues='.+',
           sort=1,
         )
       )
